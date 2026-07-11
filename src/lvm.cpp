@@ -310,30 +310,6 @@ void luaV_concat (lua_State *L, int total, int last) {
 }
 
 
-void luaV_objlen (lua_State *L, StkId ra, const TValue *rb) {
-  const TValue *tm = luaT_gettmbyobj(L, rb, TM_LEN);
-  if (ttisnil(tm)) {  /* no metamethod? */
-    switch (ttype(rb)) {
-      case LUA_TTABLE: {
-        Table *h = hvalue(rb);
-        setnvalue(ra, cast_num(luaH_getn(h)));  /* else primitive len */
-        return;
-      }
-      case LUA_TSTRING: {
-        setnvalue(ra, cast_num(tsvalue(rb)->len));
-        return;
-      }
-      default: {  /* try metamethod */
-        luaG_typeerror(L, rb, "get length of");
-        break;
-      }
-    }
-  } else {
-    callTM(L, tm, rb, rb, ra, 1);
-  };
-}
-
-
 static void Arith (lua_State *L, StkId ra, const TValue *rb,
                    const TValue *rc, TMS op) {
   TValue tempb, tempc;
@@ -550,7 +526,10 @@ void luaV_execute (lua_State *L, int nexeccalls) {
           }
           default: {  /* try metamethod */
             // slow-path, may invoke C/Lua via metamethods
-            Protect(luaV_objlen(L, ra, rb));
+            Protect(
+              if (!call_binTM(L, rb, luaO_nilobject, ra, TM_LEN))
+                luaG_typeerror(L, rb, "get length of");
+            )
           }
         }
         continue;
