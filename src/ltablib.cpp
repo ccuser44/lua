@@ -88,10 +88,10 @@ static int setn (lua_State *L) {
 
 
 static int tcreate (lua_State *L) {
-  lua_Unsigned sizeseq = (lua_Unsigned)luaL_checkinteger(L, 1);
-  lua_Unsigned sizerest = (lua_Unsigned)luaL_optinteger(L, 2, 0);
-  luaL_argcheck(L, sizeseq <= cast_uint(INT_MAX), 1, "out of range");
-  luaL_argcheck(L, sizerest <= cast_uint(INT_MAX), 2, "out of range");
+  int sizeseq = (int)luaL_checkinteger(L, 1);
+  int sizerest = (int)luaL_optinteger(L, 2, 0);
+  luaL_argcheck(L, sizeseq <= cast_uint(MAX_INT), 1, "size out of range");
+  luaL_argcheck(L, sizerest <= cast_uint(MAX_INT), 2, "size out of range");
   lua_createtable(L, cast_int(sizeseq), cast_int(sizerest));
   return 1;
 }
@@ -164,10 +164,10 @@ static int tmove (lua_State *L) {
   checktab(L, 1, TAB_R); // TODO: Decide what to do with the checktabs or find a 5.1 equivelant
   checktab(L, tt, TAB_W);
   if (e >= f) {  /* otherwise, nothing to move */
-    luaL_argcheck(L, f > 0 || e < LUA_MAXINTEGER + f, 3,
+    luaL_argcheck(L, f > 0 || e < MAX_INT + f, 3,
                   "too many elements to move");
     int n = e - f + 1;  /* number of elements to move */
-    luaL_argcheck(L, t <= LUA_MAXINTEGER - n + 1, 4,
+    luaL_argcheck(L, t <= MAX_INT - n + 1, 4,
                   "destination wrap around");
     if (t > e || t <= f || (tt != 1 && !lua_compare(L, 1, tt, LUA_OPEQ))) {
       for (int i = 0; i < n; i++) {
