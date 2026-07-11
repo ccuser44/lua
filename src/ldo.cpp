@@ -440,6 +440,11 @@ LUA_API int lua_resume (lua_State *L, int nargs) {
 }
 
 
+LUA_API int lua_isyieldable (lua_State *L) {
+  return yieldable(L);
+}
+
+
 LUA_API int lua_yield (lua_State *L, int nresults) {
   luai_userstateyield(L, nresults);
   lua_lock(L);
