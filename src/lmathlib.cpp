@@ -112,7 +112,16 @@ static int math_pow (lua_State *L) {
 }
 
 static int math_log (lua_State *L) {
-  lua_pushnumber(L, log(luaL_checknumber(L, 1)));
+  lua_Number x = luaL_checknumber(L, 1);
+  lua_Number res;
+  if (lua_isnoneornil(L, 2))
+    res = l_mathop(log)(x);
+  else {
+    lua_Number base = luaL_checknumber(L, 2);
+    if (base == (lua_Number)10.0) res = l_mathop(log10)(x);
+    else res = l_mathop(log)(x)/l_mathop(log)(base);
+  }
+  lua_pushnumber(L, res);
   return 1;
 }
 
