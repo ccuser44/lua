@@ -225,23 +225,6 @@ static int tpack (lua_State *L) {
   return 1;  /* return table */
 }
 
-
-static int tunpack (lua_State *L) {
-  lua_Unsigned n;
-  lua_Integer i = luaL_optinteger(L, 2, 1);
-  lua_Integer e = luaL_opt(L, luaL_checkinteger, 3, luaL_len(L, 1));
-  if (i > e) return 0;  /* empty range */
-  n = l_castS2U(e) - l_castS2U(i);  /* number of elements minus 1 */
-  if (l_unlikely(n >= (unsigned int)INT_MAX  ||
-                 !lua_checkstack(L, (int)(++n))))
-    return luaL_error(L, "too many results to unpack");
-  for (; i < e; i++) {  /* push arg[i..e - 1] (to avoid overflows) */
-    lua_geti(L, 1, i);
-  }
-  lua_geti(L, 1, e);  /* push last element */
-  return (int)n;
-}
-
 /* }====================================================== */
 
 
@@ -370,6 +353,8 @@ static const luaL_Reg tab_funcs[] = {
 
 LUALIB_API int luaopen_table (lua_State *L) {
   luaL_register(L, LUA_TABLIBNAME, tab_funcs);
+  lua_getglobal(L, "unpack");
+  lua_setfield(L, -2, "unpack");
   return 1;
 }
 
