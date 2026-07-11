@@ -595,6 +595,13 @@ static int luaB_yield (lua_State *L) {
 }
 
 
+static int luaB_yieldable (lua_State *L) {
+  lua_State *co = getoptco(L);
+  lua_pushboolean(L, lua_isyieldable(co));
+  return 1;
+}
+
+
 static int luaB_corunning (lua_State *L) {
   if (lua_pushthread(L))
     lua_pushnil(L);  /* main thread is not a coroutine */
@@ -609,6 +616,7 @@ static const luaL_Reg co_funcs[] = {
   {"status", luaB_costatus},
   {"wrap", luaB_cowrap},
   {"yield", luaB_yield},
+  {"isyieldable", luaB_yieldable},
   {NULL, NULL}
 };
 
