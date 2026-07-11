@@ -87,6 +87,16 @@ static int setn (lua_State *L) {
 }
 
 
+static int tcreate (lua_State *L) {
+  lua_Unsigned sizeseq = (lua_Unsigned)luaL_checkinteger(L, 1);
+  lua_Unsigned sizerest = (lua_Unsigned)luaL_optinteger(L, 2, 0);
+  luaL_argcheck(L, sizeseq <= cast_uint(INT_MAX), 1, "out of range");
+  luaL_argcheck(L, sizerest <= cast_uint(INT_MAX), 2, "out of range");
+  lua_createtable(L, cast_int(sizeseq), cast_int(sizerest));
+  return 1;
+}
+
+
 static int tinsert (lua_State *L) {
   int e = aux_getn(L, 1) + 1;  /* first empty element */
   int pos;  /* where to insert new element */
@@ -138,6 +148,43 @@ static void addfield (lua_State *L, luaL_Buffer *b, int i) {
     luaL_error(L, "invalid value (%s) at index %d in table for "
                   LUA_QL("concat"), luaL_typename(L, -1), i);
     luaL_addvalue(b);
+}
+
+/*
+** Copy elements (1[f], ..., 1[e]) into (tt[t], tt[t+1], ...). Whenever
+** possible, copy in increasing order, which is better for rehashing.
+** "possible" means destination after original range, or smaller
+** than origin, or copying to another table.
+*/
+static int tmove (lua_State *L) {
+  lua_Integer f = luaL_checkinteger(L, 2);
+  lua_Integer e = luaL_checkinteger(L, 3);
+  lua_Integer t = luaL_checkinteger(L, 4);
+  int tt = !lua_isnoneornil(L, 5) ? 5 : 1;  /* destination table */
+  checktab(L, 1, TAB_R);
+  checktab(L, tt, TAB_W);
+  if (e >= f) {  /* otherwise, nothing to move */
+    lua_Integer n, i;
+    luaL_argcheck(L, f > 0 || e < LUA_MAXINTEGER + f, 3,
+                  "too many elements to move");
+    n = e - f + 1;  /* number of elements to move */
+    luaL_argcheck(L, t <= LUA_MAXINTEGER - n + 1, 4,
+                  "destination wrap around");
+    if (t > e || t <= f || (tt != 1 && !lua_compare(L, 1, tt, LUA_OPEQ))) {
+      for (i = 0; i < n; i++) {
+        lua_geti(L, 1, f + i);
+        lua_seti(L, tt, t + i);
+      }
+    }
+    else {
+      for (i = n - 1; i >= 0; i--) {
+        lua_geti(L, 1, f + i);
+        lua_seti(L, tt, t + i);
+      }
+    }
+  }
+  lua_pushvalue(L, tt);  /* return destination table */
+  return 1;
 }
 
 
@@ -306,12 +353,16 @@ static int sort (lua_State *L) {
 
 static const luaL_Reg tab_funcs[] = {
   {"concat", tconcat},
+  {"create", tcreate},
   {"foreach", foreach},
   {"foreachi", foreachi},
   {"getn", getn},
   {"maxn", maxn},
   {"insert", tinsert},
+  {"pack", tpack},
+  {"unpack", tunpack},
   {"remove", tremove},
+  {"move", tmove},
   {"setn", setn},
   {"sort", sort},
   {NULL, NULL}
