@@ -236,6 +236,7 @@ typedef struct Proto {
   int *lineinfo;  /* map from opcodes to source lines */
   struct LocVar *locvars;  /* information about local variables */
   TString **upvalues;  /* upvalue names */
+  union Closure *cache;  /* last created closure with this prototype */
   TString  *source;
   int sizeupvalues;
   int sizek;  /* size of `k' */
