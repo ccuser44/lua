@@ -567,13 +567,7 @@ void luaV_execute (lua_State *L, int nexeccalls) {
         const TValue *rb = RB(i);
         switch (ttype(rb)) {
           case LUA_TTABLE: {
-            Table *h = hvalue(rb);
-            tm = fasttm(L, h->metatable, TM_LEN);
-            if (tm) {  /* metamethod? break switch to call it */
-              Protect(callTM(L, tm, rb, rb, ra, 1));
-              break;
-            };
-            setnvalue(ra, cast_num(luaH_getn(h)));  /* else primitive len */
+            setnvalue(ra, cast_num(luaH_getn(hvalue(rb))));
             break;
           }
           case LUA_TSTRING: {
@@ -581,7 +575,6 @@ void luaV_execute (lua_State *L, int nexeccalls) {
             break;
           }
           default: {  /* try metamethod */
-            // slow-path, may invoke C/Lua via metamethods
             Protect(
               if (!call_binTM(L, rb, luaO_nilobject, ra, TM_LEN))
                 luaG_typeerror(L, rb, "get length of");
