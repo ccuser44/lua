@@ -55,12 +55,9 @@ static int luaB_print (lua_State *L) {
 ** Check first for errors; otherwise an error may interrupt
 ** the composition of a warning, leaving it unfinished.
 */
-static int luaB_warn (lua_State *L) { // TODO: Fix this and make it tostring all arguments
+static int luaB_warn (lua_State *L) {
   int n = lua_gettop(L);  /* number of arguments */
   int i;
-  luaL_checkstring(L, 1);  /* at least one argument */
-  for (i = 2; i <= n; i++)
-    luaL_checkstring(L, i);  /* make sure all arguments are strings */
   for (i = 1; i < n; i++)  /* compose warning */
     lua_warning(L, lua_tostring(L, i), 1);
   lua_warning(L, lua_tostring(L, n), 0);  /* close warning */
