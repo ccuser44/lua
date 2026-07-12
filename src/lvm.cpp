@@ -758,15 +758,6 @@ void luaV_execute (lua_State *L, int nexeccalls) {
         setclvalue(L, ra, ncl);
         Protect(luaC_checkGC(L));
         continue;
-
-        Proto *p = cl->p->p[GETARG_Bx(i)];
-        Closure *ncl = getcached(p, cl->upvals, base);  /* cached closure */
-        if (ncl == NULL)  /* no match? */
-          pushclosure(L, p, cl->upvals, base, ra);  /* create a new one */
-        else
-          setclLvalue(L, ra, ncl);  /* push cashed closure */
-        checkGC(L, ra + 1);
-        continue:
       }
       case OP_VARARG: {
         int b = GETARG_B(i) - 1;
