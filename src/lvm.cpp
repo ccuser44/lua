@@ -310,6 +310,27 @@ void luaV_concat (lua_State *L, int total, int last) {
 }
 
 
+/*
+** check whether cached closure in prototype 'p' may be reused, that is,
+** whether there is a cached closure with the same upvalues needed by
+** new closure to be created.
+*/
+static Closure *getcached (Proto *p, UpVal **encup, StkId base) {
+  Closure *c = p->cache;
+  if (c != NULL) {  /* is there a cached closure? */
+    int nup = p->sizeupvalues;
+    Upvaldesc *uv = p->upvalues;
+    int i;
+    for (i = 0; i < nup; i++) {  /* check whether it has right upvalues */
+      TValue *v = uv[i].instack ? base + uv[i].idx : encup[uv[i].idx]->v;
+      if (c->l.upvals[i]->v != v)
+        return NULL;  /* wrong upvalue; cannot reuse closure */
+    }
+  }
+  return c;  /* return cached closure (or NULL if no cached closure) */
+}
+
+
 static void Arith (lua_State *L, StkId ra, const TValue *rb,
                    const TValue *rc, TMS op) {
   TValue tempb, tempc;
@@ -717,24 +738,35 @@ void luaV_execute (lua_State *L, int nexeccalls) {
         continue;
       }
       case OP_CLOSURE: {
-        Proto *p;
-        Closure *ncl;
-        int nup, j;
-        p = cl->p->p[GETARG_Bx(i)];
-        nup = p->nups;
-        ncl = luaF_newLclosure(L, nup, cl->env);
-        ncl->l.p = p;
-        for (j=0; j<nup; j++, pc++) {
-          if (GET_OPCODE(*pc) == OP_GETUPVAL)
-            ncl->l.upvals[j] = cl->upvals[GETARG_B(*pc)];
-          else {
-            lua_assert(GET_OPCODE(*pc) == OP_MOVE);
-            ncl->l.upvals[j] = luaF_findupval(L, base + GETARG_B(*pc));
+        Proto *p = cl->p->p[GETARG_Bx(i)];
+        Closure *ncl = getcached(p, cl->upvals, base);
+        if (ncl == NULL) {  /* no match? */
+          int nup, j;
+          nup = p->nups;
+          ncl = luaF_newLclosure(L, nup, cl->env);
+          ncl->l.p = p;
+          for (j=0; j<nup; j++, pc++) {
+            if (GET_OPCODE(*pc) == OP_GETUPVAL)
+              ncl->l.upvals[j] = cl->upvals[GETARG_B(*pc)];
+            else {
+              lua_assert(GET_OPCODE(*pc) == OP_MOVE);
+              ncl->l.upvals[j] = luaF_findupval(L, base + GETARG_B(*pc));
+            }
           }
+          p->cache = ncl;  /* save it on cache for reuse */
         }
         setclvalue(L, ra, ncl);
         Protect(luaC_checkGC(L));
         continue;
+
+        Proto *p = cl->p->p[GETARG_Bx(i)];
+        Closure *ncl = getcached(p, cl->upvals, base);  /* cached closure */
+        if (ncl == NULL)  /* no match? */
+          pushclosure(L, p, cl->upvals, base, ra);  /* create a new one */
+        else
+          setclLvalue(L, ra, ncl);  /* push cashed closure */
+        checkGC(L, ra + 1);
+        continue:
       }
       case OP_VARARG: {
         int b = GETARG_B(i) - 1;
