@@ -598,8 +598,9 @@ static int gmatch_aux (lua_State *L) {
 static int gmatch (lua_State *L) {
   luaL_checkstring(L, 1);
   luaL_checkstring(L, 2);
+  lua_Integer init = luaL_optinteger(L, 3, 0);
   lua_settop(L, 2);
-  lua_pushinteger(L, 0);
+  lua_pushinteger(L, init);
   lua_pushcclosure(L, gmatch_aux, 3);
   return 1;
 }
