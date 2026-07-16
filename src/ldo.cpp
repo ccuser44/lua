@@ -441,7 +441,7 @@ LUA_API int lua_resume (lua_State *L, int nargs) {
 
 
 LUA_API int lua_isyieldable (lua_State *L) {
-  return yieldable(L);
+  return !(L->nCcalls > L->baseCcalls || G(L)->mainthread == L);
 }
 
 
