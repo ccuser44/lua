@@ -90,15 +90,39 @@ static int str_upper (lua_State *L) {
   return 1;
 }
 
+
 static int str_rep (lua_State *L) {
-  size_t l;
-  luaL_Buffer b;
+  size_t l, lsep;
   const char *s = luaL_checklstring(L, 1, &l);
   int n = luaL_checkint(L, 2);
-  luaL_buffinit(L, &b);
-  while (n-- > 0)
-    luaL_addlstring(&b, s, l);
-  luaL_pushresult(&b);
+  const char *sep = luaL_optlstring(L, 3, "", &lsep);
+  if (n <= 0) lua_pushliteral(L, "");
+  else if (l + lsep < l || l + lsep >= MAX_SIZET / n)  /* may overflow? */
+    return luaL_error(L, "resulting string too large");
+  else {
+    size_t totallen = n * l + (n - 1) * lsep;
+    luaL_Buffer b;
+    #if USE_FAST_BUFFER
+      char *p = luaL_buffinitsize(L, &b, totallen); // Fast buffer upgrade is available
+      while (n-- > 1) {  /* first n-1 copies (followed by separator) */
+        memcpy(p, s, l * sizeof(char)); p += l;
+        if (lsep > 0) {  /* avoid empty 'memcpy' (may be expensive) */
+          memcpy(p, sep, lsep * sizeof(char)); p += lsep;
+        }
+      }
+      memcpy(p, s, l * sizeof(char));  /* last copy (not followed by separator) */
+    #else
+      luaL_buffinit(L, &b); // Fast buffer upgrade is not available
+      while (n-- > 1) {  /* first n-1 copies (followed by separator) */
+        luaL_addlstring(&b, s, l);
+        if (lsep > 0) {
+          luaL_addlstring(&b, s, lsep);
+        }
+      }
+      luaL_addlstring(&b, s, l);
+    #endif
+    luaL_pushresultsize(&b, totallen);
+  }
   return 1;
 }
 
