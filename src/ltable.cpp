@@ -558,6 +558,8 @@ static int unbound_search (Table *t, unsigned int j) {
 ** such that t[i] is non-nil and t[i+1] is nil (and 0 if t[1] is nil).
 */
 int luaH_getn (Table *t) {
+  unsigned int size = t->cachedsize;
+  if (size != 0) return size;
   unsigned int j = t->sizearray;
   if (j > 0 && ttisnil(&t->array[j - 1])) {
     /* there is a boundary in the array part: (binary) search for it */
@@ -567,12 +569,14 @@ int luaH_getn (Table *t) {
       if (ttisnil(&t->array[m - 1])) j = m;
       else i = m;
     }
-    return i;
+    size = i;
   }
   /* else must find a boundary in hash part */
   else if (t->node == dummynode)  /* hash part is empty? */
-    return j;  /* that is easy... */
-  else return unbound_search(t, j);
+    size = j;  /* that is easy... */
+  else size = unbound_search(t, j);
+  t->cachedsize = size;
+  return size;
 }
 
 
