@@ -330,7 +330,11 @@ LUALIB_API int luaL_getn (lua_State *L, int t) {
   if ((n = checkint(L, 2)) >= 0) return n;
   return (int)lua_objlen(L, t);
 }
+#else
 
+LUALIB_API void luaL_setn (lua_State *L, int t, int n) {
+  hvalue(t)->cachedsize = (unsigned int)n;
+}
 #endif
 
 /* }====================================================== */
