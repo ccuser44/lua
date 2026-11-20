@@ -342,7 +342,6 @@ static const luaL_Reg tab_funcs[] = {
   {"maxn", maxn},
   {"insert", tinsert},
   {"pack", tpack},
-  {"unpack", tunpack},
   {"remove", tremove},
   {"move", tmove},
   {"setn", setn},
